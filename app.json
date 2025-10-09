@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "redsocial-app",
+    "slug": "redsocial-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "redsocialapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.diegoavina9.redsocialapp"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "expo": {
+      "name": "AlertaMx",
+      "slug": "alertamx",
+      "version": "0.1.0",
+      "android": {
+        "package": "com.tuorg.alertamx",
+        "versionCode": 1
+      }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "059ba83b-42b8-476d-9c49-8c8566481c91"
+      }
+    },
+    "owner": "diegoavina9"
+  }
+}
