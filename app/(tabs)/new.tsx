@@ -1,194 +1,184 @@
-import { useState } from "react";
-import {
-  View, Text, TextInput, Pressable, Alert, StyleSheet, ScrollView, Platform
-} from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { router } from "expo-router";
+// /app/(tabs)/new.tsx  (o /app/(tabs)/new-poll.tsx)
+import { useEffect, useState } from "react";
+import { View, Text, TextInput, Pressable, Alert, ScrollView, Platform } from "react-native";
+import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { createPoll } from "../../services/polls";
+import { router } from "expo-router";
 
-export default function NewPollScreen() {
-  const [question, setQuestion] = useState("");
-  const [options, setOptions] = useState<string[]>(["", ""]);
-  const [saving, setSaving] = useState(false);
-
-  const [useClose, setUseClose] = useState(true);   // 👈 si tu backend lo requiere, déjalo true por default
-  const [date, setDate] = useState<Date>(new Date(Date.now() + 60 * 60 * 1000)); // +1h
+export default function NewPoll() {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [closesAt, setClosesAt] = useState<Date | null>(null);
   const [showDate, setShowDate] = useState(false);
   const [showTime, setShowTime] = useState(false);
+  const [options, setOptions] = useState<string[]>(["", ""]);
+  const [busy, setBusy] = useState(false);
 
-  const addOption = () => setOptions(prev => [...prev, ""]);
-  const removeOption = (idx: number) =>
-    setOptions(prev => prev.filter((_, i) => i !== idx));
-  const updateOption = (idx: number, val: string) =>
-    setOptions(prev => prev.map((o, i) => (i === idx ? val : o)));
-
-  const onPickDate = (_: any, d?: Date) => {
-    setShowDate(false);
-    if (d) {
-      // conserva hora previa
-      const newD = new Date(date);
-      newD.setFullYear(d.getFullYear(), d.getMonth(), d.getDate());
-      setDate(newD);
-    }
-  };
-  const onPickTime = (_: any, d?: Date) => {
-    setShowTime(false);
-    if (d) {
-      // conserva fecha previa
-      const newD = new Date(date);
-      newD.setHours(d.getHours(), d.getMinutes(), 0, 0);
-      setDate(newD);
-    }
-  };
+  const setOpt = (i: number, val: string) =>
+    setOptions((prev) => prev.map((o, idx) => (idx === i ? val : o)));
+  const addOpt = () => setOptions((prev) => (prev.length < 10 ? [...prev, ""] : prev));
 
   const submit = async () => {
-  setSaving(true);
-  try {
-    await createPoll({
-      question,            // la UI lo llama "Pregunta"
-      options,             // array de strings
-      closesAt: useClose ? date : null,
-      requireClose: true,  // 👈 fuerza que exista fecha de cierre
-    });
-    Alert.alert("Encuesta", "Encuesta creada correctamente.");
-    router.back();
-  } catch (e: any) {
-    Alert.alert("Encuesta", e?.message || "No se pudo crear la encuesta.");
-  } finally {
-    setSaving(false);
-  }
-};
+    if (!title.trim()) return Alert.alert("Encuesta", "Pon un título.");
+    const opts = options.map((o) => o.trim()).filter(Boolean).slice(0, 10);
+    if (opts.length < 2) return Alert.alert("Encuesta", "Mínimo 2 opciones.");
+    setBusy(true);
+    try {
+      await createPoll({
+        question: title.trim(),
+        options: opts,
+        description: description.trim() || null,
+        closesAt: closesAt ?? null,
+        requireClose: Boolean(closesAt),
+      });
+      router.back();
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "No se pudo crear");
+    } finally {
+      setBusy(false);
+    }
+  };
 
+  // ---- ANDROID: usar API imperativa (no await) para evitar issues en unmount
+  const openAndroidPicker = (mode: "date" | "time") => {
+    if (!DateTimePickerAndroid || typeof DateTimePickerAndroid.open !== "function") {
+      Alert.alert("Fecha", "Selector no disponible.");
+      if (mode === "date") setShowDate(false);
+      if (mode === "time") setShowTime(false);
+      return;
+    }
+
+    const base = closesAt || new Date(Date.now() + 3600 * 1000);
+
+    DateTimePickerAndroid.open({
+      value: base,
+      mode,
+      is24Hour: true,
+      onChange: (_event, selected) => {
+        if (!selected) {
+          if (mode === "date") setShowDate(false);
+          if (mode === "time") setShowTime(false);
+          return;
+        }
+        const d = new Date(closesAt || new Date());
+        if (mode === "date") {
+          d.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
+        } else {
+          d.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
+        }
+        setClosesAt(d);
+        if (mode === "date") setShowDate(false);
+        if (mode === "time") setShowTime(false);
+      },
+    });
+  };
+
+  useEffect(() => {
+    if (Platform.OS === "android" && showDate) openAndroidPicker("date");
+  }, [showDate]);
+
+  useEffect(() => {
+    if (Platform.OS === "android" && showTime) openAndroidPicker("time");
+  }, [showTime]);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Nueva encuesta</Text>
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+      <Text style={{ fontSize: 18, fontWeight: "700" }}>Nueva encuesta</Text>
 
-      <Text style={styles.label}>Pregunta</Text>
+      <Text>Título</Text>
       <TextInput
-        placeholder="¿Qué opinas de…?"
-        value={question}
-        onChangeText={setQuestion}
-        style={styles.input}
+        value={title}
+        onChangeText={setTitle}
+        placeholder="Pregunta..."
+        style={{ borderWidth: 1, borderColor: "#ddd", borderRadius: 10, padding: 12 }}
       />
 
-      <Text style={[styles.label, { marginTop: 12 }]}>Opciones</Text>
-      {options.map((opt, idx) => (
-        <View key={idx} style={styles.optionRow}>
-          <TextInput
-            placeholder={`Opción ${idx + 1}`}
-            value={opt}
-            onChangeText={(t) => updateOption(idx, t)}
-            style={[styles.input, { flex: 1 }]}
-          />
-          {options.length > 2 && (
-            <Pressable onPress={() => removeOption(idx)} style={styles.removeBtn}>
-              <Text style={{ color: "#ef4444", fontWeight: "700" }}>—</Text>
-            </Pressable>
-          )}
-        </View>
-      ))}
+      <Text>Descripción (opcional)</Text>
+      <TextInput
+        value={description}
+        onChangeText={setDescription}
+        placeholder="Detalles..."
+        multiline
+        numberOfLines={3}
+        style={{ borderWidth: 1, borderColor: "#ddd", borderRadius: 10, padding: 12 }}
+      />
 
-      <Pressable onPress={addOption} style={styles.addBtn}>
-        <Text style={styles.addBtnText}>＋ Agregar opción</Text>
-      </Pressable>
-
-      {/* Fecha de cierre */}
-      <View style={{ marginTop: 16, gap: 8 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Text style={styles.label}>Fecha de cierre</Text>
-          <Pressable
-            onPress={() => setUseClose(v => !v)}
-            style={[styles.toggle, useClose ? styles.toggleOn : styles.toggleOff]}
-          >
-            <Text style={{ color: useClose ? "#fff" : "#0f172a", fontWeight: "700" }}>
-              {useClose ? "ON" : "OFF"}
-            </Text>
-          </Pressable>
-        </View>
-
-        {useClose && (
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <Pressable onPress={() => setShowDate(true)} style={[styles.smallBtn, { flex: 1 }]}>
-              <Text style={styles.smallBtnText}>
-                {date.toLocaleDateString()}
-              </Text>
-            </Pressable>
-            <Pressable onPress={() => setShowTime(true)} style={[styles.smallBtn, { width: 120 }]}>
-              <Text style={styles.smallBtnText}>
-                {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </Text>
-            </Pressable>
-          </View>
-        )}
-
-        {showDate && (
-          <DateTimePicker
-            value={date}
-            mode="date"
-            display={Platform.OS === "ios" ? "inline" : "default"}
-            onChange={onPickDate}
-          />
-        )}
-        {showTime && (
-          <DateTimePicker
-            value={date}
-            mode="time"
-            is24Hour
-            display="default"
-            onChange={onPickTime}
-          />
-        )}
+      <Text>Fecha de cierre (opcional)</Text>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <Pressable
+          onPress={() => setShowDate(true)}
+          style={{ flex: 1, padding: 12, borderWidth: 1, borderColor: "#ddd", borderRadius: 10, alignItems: "center" }}
+        >
+          <Text>{closesAt ? closesAt.toLocaleDateString() : "Elegir fecha"}</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setShowTime(true)}
+          style={{ width: 140, padding: 12, borderWidth: 1, borderColor: "#ddd", borderRadius: 10, alignItems: "center" }}
+        >
+          <Text>
+            {closesAt ? closesAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Elegir hora"}
+          </Text>
+        </Pressable>
       </View>
 
+      {Platform.OS === "ios" && showDate && (
+        <DateTimePicker
+          value={closesAt || new Date(Date.now() + 3600 * 1000)}
+          mode="date"
+          display="inline"
+          onChange={(_e, d) => {
+            setShowDate(false);
+            if (d) {
+              const base = closesAt || new Date();
+              const nd = new Date(base);
+              nd.setFullYear(d.getFullYear(), d.getMonth(), d.getDate());
+              setClosesAt(nd);
+            }
+          }}
+        />
+      )}
+
+      {Platform.OS === "ios" && showTime && (
+        <DateTimePicker
+          value={closesAt || new Date(Date.now() + 3600 * 1000)}
+          mode="time"
+          display="spinner"
+          onChange={(_e, d) => {
+            setShowTime(false);
+            if (d) {
+              const base = closesAt || new Date();
+              const nd = new Date(base);
+              nd.setHours(d.getHours(), d.getMinutes(), 0, 0);
+              setClosesAt(nd);
+            }
+          }}
+        />
+      )}
+
+      <Text>Opciones</Text>
+      {options.map((o, idx) => (
+        <TextInput
+          key={idx}
+          value={o}
+          onChangeText={(t) => setOpt(idx, t)}
+          placeholder={`Opción ${idx + 1}`}
+          style={{ borderWidth: 1, borderColor: "#ddd", borderRadius: 10, padding: 12, marginBottom: 8 }}
+        />
+      ))}
       <Pressable
-        onPress={submit}
-        style={[styles.saveBtn, saving && { opacity: 0.7 }]}
-        disabled={saving}
+        onPress={addOpt}
+        style={{ padding: 12, borderWidth: 1, borderColor: "#6A2C75", borderRadius: 10, alignItems: "center" }}
       >
-        <Text style={styles.saveBtnText}>{saving ? "Guardando..." : "Crear encuesta"}</Text>
+        <Text>+ Agregar opción</Text>
+      </Pressable>
+
+      <Pressable
+        disabled={busy}
+        onPress={submit}
+        style={{ padding: 14, backgroundColor: "#6A2C75", borderRadius: 12, alignItems: "center", opacity: busy ? 0.7 : 1 }}
+      >
+        <Text style={{ color: "#fff", fontWeight: "700" }}>Crear encuesta</Text>
       </Pressable>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { padding: 16, gap: 10 },
-  title: { fontSize: 20, fontWeight: "800", marginBottom: 6, color: "#0f172a" },
-  label: { fontWeight: "700", color: "#334155" },
-  input: {
-    borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 10, backgroundColor: "#fff",
-  },
-  optionRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  removeBtn: {
-    width: 40, height: 44, alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: "#fecaca", backgroundColor: "#fff1f2", borderRadius: 10,
-  },
-  addBtn: {
-    marginTop: 6, alignSelf: "flex-start",
-    paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10,
-    backgroundColor: "#e0ecff", borderWidth: 1, borderColor: "#bfdbfe",
-  },
-  addBtnText: { color: "#1d4ed8", fontWeight: "700" },
-  // cierre
-  toggle: {
-    width: 64, height: 32, borderRadius: 16,
-    alignItems: "center", justifyContent: "center", borderWidth: 1,
-  },
-  toggleOn: { backgroundColor: "#2563eb", borderColor: "#1d4ed8" },
-  toggleOff: { backgroundColor: "#f8fafc", borderColor: "#cbd5e1" },
-
-  smallBtn: {
-    paddingVertical: 10, paddingHorizontal: 12,
-    borderRadius: 10, borderWidth: 1, borderColor: "#cbd5e1", backgroundColor: "#fff",
-  },
-  smallBtnText: { fontWeight: "700", color: "#0f172a" },
-
-  saveBtn: {
-    marginTop: 18, backgroundColor: "#2563eb", borderRadius: 12,
-    paddingVertical: 12, alignItems: "center",
-    shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 6, elevation: 3,
-  },
-  saveBtnText: { color: "#fff", fontWeight: "800" },
-});

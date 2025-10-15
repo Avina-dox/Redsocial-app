@@ -111,7 +111,7 @@ export default function Feed() {
   );
 
   return (
-    <View style={{ flex: 1, padding: 12, gap: 12 }}>
+    <View style={{ flex: 1, padding: 12, gap: 12, marginTop:25 }}>
       {initial && (
         <View style={{ gap: 12 }}>
           <Skeleton />
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   // skeletons
   skeletonCard: {
     backgroundColor: "#fff",
-    borderRadius: 18,
+    borderRadius: 14,
     padding: 14,
     gap: 10,
   },

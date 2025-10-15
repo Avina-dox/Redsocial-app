@@ -8,7 +8,8 @@ export default function Home() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.title}>¡Bienvenido!</Text>
+        <Text style={styles.title}>¡Bienvenido!</Text> 
+        
         <Text style={styles.subtitle}>
           Hola {user?.name ?? "vecino"}, esta es la pantalla principal de la app.
         </Text>
@@ -43,6 +44,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
+    marginTop:100,
   },
   title: {
     fontSize: 24,

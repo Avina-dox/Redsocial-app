@@ -1,0 +1,85 @@
+import { useState } from "react";
+import { View, Text, TextInput, Pressable, Alert, ScrollView } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { createPoll } from "../../services/polls";
+import { router } from "expo-router";
+
+
+export default function NewPoll(){
+const [title, setTitle] = useState("");
+const [description, setDescription] = useState("");
+const [closesAt, setClosesAt] = useState<Date | null>(null);
+const [showPicker, setShowPicker] = useState(false);
+const [options, setOptions] = useState<string[]>(["", ""]);
+const [busy, setBusy] = useState(false);
+
+
+const setOpt = (i:number, val:string)=> setOptions(prev=> prev.map((o,idx)=> idx===i? val : o));
+const addOpt = ()=> setOptions(prev=> prev.length<10 ? [...prev, ""] : prev);
+
+
+const submit = async ()=>{
+if (!title.trim()) return Alert.alert('Encuesta','Pon un título.');
+const opts = options.map(o=>o.trim()).filter(Boolean).slice(0,10);
+if (opts.length < 2) return Alert.alert('Encuesta','Mínimo 2 opciones.');
+setBusy(true);
+try{
+await createPoll({
+title: title.trim(),
+description: description.trim() || undefined,
+closes_at: closesAt ? closesAt.toISOString().slice(0,19).replace('T',' ') : undefined,
+options: opts.map(text=>({text}))
+});
+router.back();
+}catch(e:any){
+Alert.alert('Error', e?.response?.data?.message || 'No se pudo crear');
+}finally{ setBusy(false); }
+};
+
+
+return (
+<ScrollView contentContainerStyle={{padding:16,gap:12}}>
+<Text style={{fontSize:18,fontWeight:'700'}}>Nueva encuesta</Text>
+
+
+<Text>Título</Text>
+<TextInput value={title} onChangeText={setTitle} placeholder="Pregunta…"
+style={{borderWidth:1,borderColor:'#ddd',borderRadius:10,padding:12}}/>
+
+
+<Text>Descripción (opcional)</Text>
+<TextInput value={description} onChangeText={setDescription} placeholder="Detalles…"
+multiline numberOfLines={3}
+style={{borderWidth:1,borderColor:'#ddd',borderRadius:10,padding:12}}/>
+
+
+<Text>Fecha de cierre (opcional)</Text>
+<Pressable onPress={()=>setShowPicker(true)} style={{padding:12,borderWidth:1,borderColor:'#ddd',borderRadius:10}}>
+<Text>{closesAt ? closesAt.toLocaleString() : 'Elegir fecha/hora'}</Text>
+</Pressable>
+{showPicker && (
+<DateTimePicker
+value={closesAt || new Date(Date.now()+3600*1000)}
+mode="datetime"
+onChange={(e, d)=>{ setShowPicker(false); if (d) setClosesAt(d); }}
+/>
+)}
+
+
+<Text>Opciones</Text>
+{options.map((o,idx)=> (
+<TextInput key={idx} value={o} onChangeText={(t)=>setOpt(idx,t)} placeholder={`Opción ${idx+1}`}
+style={{borderWidth:1,borderColor:'#ddd',borderRadius:10,padding:12, marginBottom:8}}/>
+))}
+<Pressable onPress={addOpt} style={{padding:12,borderWidth:1,borderColor:'#6A2C75',borderRadius:10,alignItems:'center'}}>
+<Text>+ Agregar opción</Text>
+</Pressable>
+
+
+<Pressable disabled={busy} onPress={submit}
+style={{padding:14, backgroundColor:'#6A2C75', borderRadius:12, alignItems:'center'}}>
+<Text style={{color:'#fff',fontWeight:'700'}}>Crear encuesta</Text>
+</Pressable>
+</ScrollView>
+);
+}
