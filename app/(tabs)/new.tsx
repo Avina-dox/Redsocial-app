@@ -83,14 +83,14 @@ export default function NewPoll() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 18, fontWeight: "700" }}>Nueva encuesta</Text>
+      <Text style={{ marginTop:25, fontSize: 18, fontWeight: "700" }}>Nueva encuesta</Text>
 
       <Text>Título</Text>
       <TextInput
         value={title}
         onChangeText={setTitle}
         placeholder="Pregunta..."
-        style={{ borderWidth: 1, borderColor: "#ddd", borderRadius: 10, padding: 12 }}
+        style={{ borderWidth: 1, borderColor: "#292323ff", borderRadius: 10, padding: 12 }}
       />
 
       <Text>Descripción (opcional)</Text>

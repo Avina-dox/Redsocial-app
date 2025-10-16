@@ -56,9 +56,10 @@ export default function PollsList() {
     <Pressable
       onPress={() => router.push(`/(tabs)/${item.id}`)}  // 👈 detalle dentro del grupo (tabs)
       style={{
+        marginTop:10,
         padding: 12,
         borderWidth: 1,
-        borderColor: "#e5e7eb",
+        borderColor: "#160a0aff",
         borderRadius: 12,
         marginHorizontal: 16,
         marginVertical: 8,
@@ -82,12 +83,13 @@ export default function PollsList() {
             key={s}
             onPress={() => setStatus(s)}
             style={{
+              marginTop:30,
               paddingVertical: 8,
               paddingHorizontal: 12,
               borderRadius: 999,
               borderWidth: 1,
               borderColor: active ? "#6A2C75" : "#e5e7eb",
-              backgroundColor: active ? "#6A2C75" : "transparent",
+              backgroundColor: active ? "#080508ff" : "transparent",
             }}
           >
             <Text style={{ color: active ? "#fff" : "#111827", fontWeight: "600" }}>

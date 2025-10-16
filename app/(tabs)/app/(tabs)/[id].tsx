@@ -2,7 +2,7 @@
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { View, Text, Pressable, ActivityIndicator, Alert, ScrollView } from "react-native";
-import { getPoll, votePoll } from "../../services/polls";
+import { getPoll, votePoll } from "../../../../services/polls";
 
 export default function PollDetail() {
   const { id } = useLocalSearchParams<{ id?: string }>();
